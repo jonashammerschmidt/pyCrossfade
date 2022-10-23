@@ -137,16 +137,21 @@ def crossfade(master_song, slave_song, len_crossfade, len_time_stretch, return_a
     slave_p_audio = slave_song.audio
     slave_p_dbeats = slave_song.get_downbeats()
 
+    slave_p_start_offset = slave_song.start_dbeat - len_crossfade
+    master_p_end_offset = len(master_p_dbeats) - master_song.end_dbeat
+    if master_song.end_dbeat == 0:
+        master_p_end_offset = 0
+
     # calculate the factor of time stretching according to first
     # downbeat difference of master and slaves in crossfade
-    crossfade_master_first_dbeat_diff = master_p_dbeats[(-1 * len_crossfade) + 1] - master_p_dbeats[-1 * len_crossfade]
+    crossfade_master_first_dbeat_diff = master_p_dbeats[(-1 * (len_crossfade + master_p_end_offset)) + 1] - master_p_dbeats[-1 * (len_crossfade + master_p_end_offset)]
     crossfade_slave_first_dbeat_diff = slave_p_dbeats[1] - slave_p_dbeats[0]
     ts_final_factor = crossfade_master_first_dbeat_diff / crossfade_slave_first_dbeat_diff
 
     # -- TIME STRETCHING --
 
-    ts_dbeat_start = -1 * (len_crossfade + len_time_stretch)
-    ts_dbeat_end = (-1 * len_crossfade) + 1
+    ts_dbeat_start = -1 * (len_crossfade + len_time_stretch + master_p_end_offset)
+    ts_dbeat_end = (-1 * (len_crossfade + master_p_end_offset)) + 1
     ts_song = Song()
     ts_song.audio, ts_song.downbeats = master_p_audio, master_p_dbeats
     ts_cropped_song = crop_audio_and_dbeats(ts_song, ts_dbeat_start, ts_dbeat_end)
@@ -158,21 +163,21 @@ def crossfade(master_song, slave_song, len_crossfade, len_time_stretch, return_a
 
     # -- CROSSFADING --
 
-    master_dbeats_start = len(master_p_dbeats) - len_crossfade - 1
-    master_dbeats_end = len(master_p_dbeats) - 1
+    master_dbeats_start = len(master_p_dbeats) - (len_crossfade + master_p_end_offset) - 1
+    master_dbeats_end = len(master_p_dbeats) - (master_p_end_offset) - 1
     master_fadeout_song = Song()
     master_fadeout_song.audio, master_fadeout_song.downbeats = master_p_audio, master_p_dbeats
     master_fadeout_cropped_song = crop_audio_and_dbeats(master_fadeout_song,
                                                                           master_dbeats_start,
                                                                           master_dbeats_end)
-    slave_dbeats_start = 0
-    slave_dbeats_end = len_crossfade
+
+    slave_dbeats_start = (0 + slave_p_start_offset)
+    slave_dbeats_end = (len_crossfade + slave_p_start_offset)
     slave_fadein_song = Song()
     slave_fadein_song.audio, slave_fadein_song.downbeats = slave_p_audio, slave_p_dbeats
     slave_fadein_cropped_song = crop_audio_and_dbeats(slave_fadein_song,
                                                     slave_dbeats_start,
                                                     slave_dbeats_end)
-
 
     master_fadeout_audio, slave_fadein_audio = beatmatch_to_slave(master_fadeout_cropped_song, slave_fadein_cropped_song)
 
@@ -190,7 +195,7 @@ def crossfade(master_song, slave_song, len_crossfade, len_time_stretch, return_a
 
     crossfade_audio = new_slave_fadedin + new_master_fadedout
 
-    slave_fadein_end_idx = slave_p_dbeats[0] + len(new_slave_fadedin)
+    slave_fadein_end_idx = slave_p_dbeats[(0 + slave_p_start_offset)] + len(new_slave_fadedin)
 
 
     if return_audio:

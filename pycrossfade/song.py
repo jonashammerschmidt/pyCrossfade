@@ -5,8 +5,10 @@ import os
 
 
 class Song():
-    def __init__(self, filepath=None):
+    def __init__(self, filepath=None, start_dbeat=0, end_dbeat=0):
         self.filepath = filepath
+        self.start_dbeat = start_dbeat
+        self.end_dbeat = end_dbeat
         self.audio = None
         self.sample_rate = 44100
         self.beats = None
